@@ -14,13 +14,12 @@ export default function ScanPage() {
   const [error, setError] = useState<string | null>(null)
   const [verifying, setVerifying] = useState(false)
 
-  // Start scanner on mount and stop on unmount; intentionally ignore hook dependency warnings
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     startScanner()
     return () => {
       stopScanner()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const startScanner = async () => {
@@ -66,20 +65,36 @@ export default function ScanPage() {
       stopScanner()
 
       // Call Supabase edge function to verify QR
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+      if (!supabaseUrl || !supabaseKey) {
+        throw new Error('Environment variables not configured')
+      }
+
+      console.log('Verifying QR token:', decodedText)
+      console.log('Calling:', `${supabaseUrl}/functions/v1/verify_qr_and_lock`)
+
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/verify_qr_and_lock`,
+        `${supabaseUrl}/functions/v1/verify_qr_and_lock`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
+            'Authorization': `Bearer ${supabaseKey}`
           },
           body: JSON.stringify({
             token: decodedText,
-            action: 'verify' // Just verify first
+            action: 'verify'
           })
         }
       )
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('HTTP Error:', response.status, errorText)
+        throw new Error(`Server error: ${response.status}`)
+      }
 
       const result: PrescriptionVerification = await response.json()
 
@@ -99,7 +114,12 @@ export default function ScanPage() {
       }
     } catch (err: unknown) {
       console.error('Verification error:', err)
-      setError('Gagal memverifikasi resep. Silakan coba lagi.')
+      const errorMessage = err instanceof Error 
+        ? err.message === 'Environment variables not configured'
+          ? 'Konfigurasi tidak lengkap. Hubungi administrator.'
+          : 'Gagal memverifikasi resep. Silakan coba lagi.'
+        : 'Gagal memverifikasi resep. Silakan coba lagi.'
+      setError(errorMessage)
       setVerifying(false)
       setTimeout(() => {
         setError(null)
@@ -177,7 +197,7 @@ export default function ScanPage() {
           {/* Error Message */}
           {error && (
             <div className="m-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+              <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
               <div className="text-sm text-red-800 dark:text-red-200">
                 {error}
               </div>

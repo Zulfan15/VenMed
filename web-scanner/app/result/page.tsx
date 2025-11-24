@@ -11,7 +11,6 @@ export default function ResultPage() {
   const [prescription, setPrescription] = useState<PrescriptionVerification | null>(null)
   const [qrToken, setQrToken] = useState<string>('')
   const [dispensing, setDispensing] = useState(false)
-  const [dispensed, setDispensed] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -29,47 +28,84 @@ export default function ResultPage() {
   }, [router])
 
   const handleDispense = async () => {
-    if (!prescription || !qrToken || dispensing || dispensed) return
+    if (!prescription || !qrToken || dispensing) return
 
     try {
       setDispensing(true)
       setError(null)
 
       // Call edge function with dispense action
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+      if (!supabaseUrl || !supabaseKey) {
+        throw new Error('Environment variables not configured')
+      }
+
+      console.log('Dispensing with token:', qrToken)
+      console.log('Calling:', `${supabaseUrl}/functions/v1/verify_qr_and_lock`)
+
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/verify_qr_and_lock`,
+        `${supabaseUrl}/functions/v1/verify_qr_and_lock`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
+            'Authorization': `Bearer ${supabaseKey}`
           },
           body: JSON.stringify({
-            token: qrToken, // Use the actual QR token from scan
+            token: qrToken,
             action: 'dispense'
           })
         }
       )
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('HTTP Error:', response.status, errorText)
+        throw new Error(`Server error: ${response.status}`)
+      }
 
       const result = await response.json()
 
       console.log('Dispense response:', result) // Debug log
 
       if (response.ok && result.valid) {
-        setDispensed(true)
+        // Prepare receipt data
+        const receiptData = {
+          prescription_id: prescription.prescription.id,
+          patient_name: prescription.prescription.patient_name,
+          doctor_name: prescription.prescription.doctor.name,
+          doctor_license: prescription.prescription.doctor.license_number,
+          issued_at: prescription.prescription.issued_at,
+          dispensed_at: new Date().toISOString(),
+          diagnosis: prescription.prescription.diagnosis,
+          items: prescription.items.map(item => ({
+            medicine_name: item.medicine.name,
+            generic_name: item.medicine.generic_name,
+            strength: item.medicine.strength,
+            dosage: item.dosage,
+            frequency: item.frequency,
+            duration_days: item.duration_days,
+            total_quantity: item.total_quantity,
+            instructions: item.instructions
+          }))
+        }
+
+        // Save receipt data
+        sessionStorage.setItem('receipt', JSON.stringify(receiptData))
         sessionStorage.removeItem('prescription')
         sessionStorage.removeItem('qr_token')
         
-        // Auto redirect after 5 seconds
-        setTimeout(() => {
-          router.push('/')
-        }, 5000)
+        // Redirect to receipt page
+        router.push('/receipt')
       } else {
         setError(result.error || 'Gagal mengeluarkan obat')
       }
     } catch (err: unknown) {
       console.error('Dispense error:', err)
-      setError('Terjadi kesalahan saat mengeluarkan obat')
+      const errorMessage = err instanceof Error ? err.message : 'Terjadi kesalahan saat mengeluarkan obat'
+      setError(errorMessage)
     } finally {
       setDispensing(false)
     }
@@ -81,41 +117,6 @@ export default function ResultPage() {
         <div className="text-center">
           <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
           <p className="text-gray-600 dark:text-gray-400">Loading...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (dispensed) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900 dark:to-emerald-900 flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
-          <div className="mb-6">
-            <div className="w-20 h-20 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto">
-              <CheckCircle className="w-12 h-12 text-green-600 dark:text-green-400" />
-            </div>
-          </div>
-          
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">
-            Obat Berhasil Dikeluarkan!
-          </h1>
-          
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
-            Silakan ambil obat Anda dari vending machine
-          </p>
-
-          <div className="space-y-3">
-            <Link href="/">
-              <button className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
-                <Home className="w-5 h-5" />
-                Kembali ke Beranda
-              </button>
-            </Link>
-          </div>
-
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
-            Otomatis kembali dalam 5 detik...
-          </p>
         </div>
       </div>
     )
@@ -219,7 +220,7 @@ export default function ResultPage() {
         {/* Error Message */}
         {error && (
           <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+            <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
             <div className="text-sm text-red-800 dark:text-red-200">
               {error}
             </div>
@@ -243,7 +244,7 @@ export default function ResultPage() {
             {dispensing ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Mengeluarkan Obat...
+                Memproses...
               </>
             ) : (
               <>
