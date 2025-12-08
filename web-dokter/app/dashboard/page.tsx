@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { User, FileText, LogOut, Plus, History } from 'lucide-react'
+import { User, FileText, LogOut, Plus, History, TrendingUp, CheckCircle, Clock, Activity, ArrowRight } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
 
 interface Doctor {
   id: string
@@ -13,24 +14,76 @@ interface Doctor {
   phone?: string
 }
 
+interface Stats {
+  today: number
+  thisWeek: number
+  thisMonth: number
+  total: number
+  dispensed: number
+  pending: number
+}
+
+function getGreeting(): string {
+  const hour = new Date().getHours()
+  if (hour < 12) return 'Selamat Pagi'
+  if (hour < 15) return 'Selamat Siang'
+  if (hour < 18) return 'Selamat Sore'
+  return 'Selamat Malam'
+}
+
 export default function DashboardPage() {
   const router = useRouter()
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [doctor, setDoctor] = useState<Doctor | null>(() => {
-    // Initialize state from localStorage
-    if (typeof window !== 'undefined') {
-      const storedDoctor = localStorage.getItem('doctor')
-      return storedDoctor ? JSON.parse(storedDoctor) : null
-    }
-    return null
-  })
+  const [doctor, setDoctor] = useState<Doctor | null>(null)
+  const [stats, setStats] = useState<Stats>({ today: 0, thisWeek: 0, thisMonth: 0, total: 0, dispensed: 0, pending: 0 })
+  const [loadingStats, setLoadingStats] = useState(true)
+  const initialized = useRef(false)
 
   useEffect(() => {
-    // Check if doctor is logged in
-    if (!doctor) {
+    if (initialized.current) return
+    initialized.current = true
+    
+    const storedDoctor = localStorage.getItem('doctor')
+    if (storedDoctor) {
+      try {
+        const doctorData = JSON.parse(storedDoctor)
+        setDoctor(doctorData)
+        fetchStats(doctorData.id)
+      } catch {
+        router.push('/login')
+      }
+    } else {
       router.push('/login')
     }
-  }, [doctor, router])
+  }, [router])
+
+  const fetchStats = async (doctorId: string) => {
+    try {
+      const now = new Date()
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
+      const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay())).toISOString()
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+
+      const { data: prescriptions, error } = await supabase
+        .from('prescriptions')
+        .select('id, issued_at, status')
+        .eq('doctor_id', doctorId)
+
+      if (error) throw error
+
+      const today = prescriptions?.filter(p => p.issued_at >= startOfDay).length || 0
+      const thisWeek = prescriptions?.filter(p => p.issued_at >= startOfWeek).length || 0
+      const thisMonth = prescriptions?.filter(p => p.issued_at >= startOfMonth).length || 0
+      const total = prescriptions?.length || 0
+      const dispensed = prescriptions?.filter(p => p.status === 'dispensed').length || 0
+      const pending = prescriptions?.filter(p => p.status === 'issued').length || 0
+
+      setStats({ today, thisWeek, thisMonth, total, dispensed, pending })
+    } catch (error) {
+      console.error('Error fetching stats:', error)
+    } finally {
+      setLoadingStats(false)
+    }
+  }
 
   const handleLogout = () => {
     localStorage.removeItem('doctor')
@@ -39,112 +92,161 @@ export default function DashboardPage() {
 
   if (!doctor) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+          <div className="w-12 h-12 border-2 border-blue-100 border-t-blue-800 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-blue-800">Memuat...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <header className="bg-white dark:bg-gray-800 shadow">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
-                <User className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                  {doctor.name}
-                </h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  SIP: {doctor.license_number}
-                </p>
-              </div>
+    <div className="min-h-screen bg-slate-50">
+      {/* Sidebar */}
+      <aside className="fixed left-0 top-0 h-full w-64 bg-blue-900 p-5 flex flex-col">
+        {/* Logo */}
+        <div className="flex items-center gap-3 mb-8 px-2">
+          <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center">
+            <Activity className="w-5 h-5 text-blue-900" />
+          </div>
+          <span className="text-lg font-semibold text-white">VenMed</span>
+        </div>
+
+        {/* Doctor Info */}
+        <div className="px-2 mb-8">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-800 rounded-full flex items-center justify-center">
+              <User className="w-5 h-5 text-blue-200" />
             </div>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-              Logout
-            </button>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-white truncate">{doctor.name}</p>
+              <p className="text-xs text-blue-300">{doctor.license_number}</p>
+            </div>
           </div>
         </div>
-      </header>
+
+        {/* Navigation */}
+        <nav className="flex-1 space-y-1">
+          <Link href="/dashboard" className="flex items-center gap-3 px-3 py-2.5 bg-blue-800 text-white rounded-lg text-sm font-medium">
+            <Activity className="w-4 h-4" />
+            Dashboard
+          </Link>
+          <Link href="/prescription/new" className="flex items-center gap-3 px-3 py-2.5 text-blue-200 hover:text-white hover:bg-blue-800/50 rounded-lg text-sm transition-colors">
+            <Plus className="w-4 h-4" />
+            Buat Resep
+          </Link>
+          <Link href="/prescription/history" className="flex items-center gap-3 px-3 py-2.5 text-blue-200 hover:text-white hover:bg-blue-800/50 rounded-lg text-sm transition-colors">
+            <History className="w-4 h-4" />
+            Riwayat
+          </Link>
+        </nav>
+
+        {/* Logout */}
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 px-3 py-2.5 text-blue-300 hover:text-red-300 rounded-lg text-sm transition-colors"
+        >
+          <LogOut className="w-4 h-4" />
+          Keluar
+        </button>
+      </aside>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Dashboard Dokter
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Kelola resep digital Anda
+      <main className="ml-64 p-8">
+        {/* Header */}
+        <header className="mb-8">
+          <p className="text-slate-500 text-sm mb-1">
+            {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
-        </div>
+          <h1 className="text-2xl font-semibold text-slate-800">
+            {getGreeting()}, {doctor.name.split(' ').slice(0, 2).join(' ')}
+          </h1>
+        </header>
 
-        {/* Action Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          {/* Create Prescription Card */}
-          <Link href="/prescription/new">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 hover:shadow-xl transition-shadow cursor-pointer border-2 border-transparent hover:border-blue-500">
-              <div className="flex items-start gap-4">
-                <div className="w-14 h-14 bg-blue-100 dark:bg-blue-900 rounded-xl flex items-center justify-center">
-                  <Plus className="w-7 h-7 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                    Buat Resep Baru
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm">
-                    Buat resep digital untuk pasien dan generate QR Code
-                  </p>
-                </div>
-              </div>
+        {/* Stats */}
+        <div className="grid grid-cols-4 gap-4 mb-8">
+          <div className="bg-white border border-slate-200 rounded-xl p-5">
+            <div className="flex items-center justify-between mb-3">
+              <TrendingUp className="w-5 h-5 text-blue-800" />
+              <span className="text-xs text-slate-500">Hari ini</span>
             </div>
-          </Link>
-
-          {/* View History Card */}
-          <Link href="/prescription/history">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 hover:shadow-xl transition-shadow cursor-pointer border-2 border-transparent hover:border-green-500">
-              <div className="flex items-start gap-4">
-                <div className="w-14 h-14 bg-green-100 dark:bg-green-900 rounded-xl flex items-center justify-center">
-                  <History className="w-7 h-7 text-green-600 dark:text-green-400" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                    Riwayat Resep
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm">
-                    Lihat semua resep yang sudah dibuat
-                  </p>
-                </div>
-              </div>
-            </div>
-          </Link>
-        </div>
-
-        {/* Info Card */}
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6">
-          <div className="flex items-start gap-3">
-            <FileText className="w-6 h-6 text-blue-600 dark:text-blue-400 shrink-0 mt-1" />
-            <div>
-              <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
-                Tentang Sistem
-              </h4>
-              <p className="text-sm text-blue-800 dark:text-blue-200">
-                Sistem ini memungkinkan Anda membuat resep digital yang dapat di-scan 
-                di Smart Medical Vending Machine. Setiap resep akan menghasilkan QR Code 
-                unik yang hanya dapat digunakan satu kali untuk keamanan.
-              </p>
-            </div>
+            <p className="text-3xl font-semibold text-slate-800">
+              {loadingStats ? '-' : stats.today}
+            </p>
+            <p className="text-sm text-slate-500 mt-1">Resep dibuat</p>
           </div>
+
+          <div className="bg-white border border-slate-200 rounded-xl p-5">
+            <div className="flex items-center justify-between mb-3">
+              <FileText className="w-5 h-5 text-blue-800" />
+              <span className="text-xs text-slate-500">Minggu ini</span>
+            </div>
+            <p className="text-3xl font-semibold text-slate-800">
+              {loadingStats ? '-' : stats.thisWeek}
+            </p>
+            <p className="text-sm text-slate-500 mt-1">Total resep</p>
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-xl p-5">
+            <div className="flex items-center justify-between mb-3">
+              <CheckCircle className="w-5 h-5 text-emerald-600" />
+              <span className="text-xs text-emerald-600">Selesai</span>
+            </div>
+            <p className="text-3xl font-semibold text-slate-800">
+              {loadingStats ? '-' : stats.dispensed}
+            </p>
+            <p className="text-sm text-slate-500 mt-1">Obat diambil</p>
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-xl p-5">
+            <div className="flex items-center justify-between mb-3">
+              <Clock className="w-5 h-5 text-amber-500" />
+              <span className="text-xs text-amber-600">Pending</span>
+            </div>
+            <p className="text-3xl font-semibold text-slate-800">
+              {loadingStats ? '-' : stats.pending}
+            </p>
+            <p className="text-sm text-slate-500 mt-1">Menunggu</p>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <h2 className="text-sm font-medium text-slate-600 mb-4">Menu Cepat</h2>
+        <div className="grid grid-cols-2 gap-4">
+          {/* Create Prescription */}
+          <Link href="/prescription/new" className="group">
+            <div className="bg-blue-900 rounded-xl p-6 hover:bg-blue-800 transition-colors">
+              <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center mb-4">
+                <Plus className="w-5 h-5 text-white" />
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-1">Buat Resep Baru</h3>
+              <p className="text-blue-200 text-sm mb-4">
+                Buat resep digital dan generate QR Code
+              </p>
+              <div className="flex items-center gap-2 text-white text-sm font-medium">
+                Mulai
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </div>
+          </Link>
+
+          {/* View History */}
+          <Link href="/prescription/history" className="group">
+            <div className="bg-white border border-slate-200 rounded-xl p-6 hover:border-blue-300 transition-colors">
+              <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center mb-4">
+                <History className="w-5 h-5 text-blue-800" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-800 mb-1">Riwayat Resep</h3>
+              <p className="text-slate-500 text-sm mb-4">
+                Lihat dan kelola semua resep
+              </p>
+              <div className="flex items-center gap-2 text-blue-800 text-sm font-medium">
+                Lihat semua
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </div>
+          </Link>
         </div>
       </main>
     </div>

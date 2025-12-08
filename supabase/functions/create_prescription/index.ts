@@ -97,6 +97,37 @@ serve(async (req) => {
       )
     }
 
+    // Validate stock availability for each medicine
+    const stockErrors: string[] = []
+    for (const item of prescriptionData.items) {
+      const medicine = medicines.find((m: { id: string; name: string; form: string; stock_quantity: number }) => m.id === item.medicine_id)
+      if (medicine) {
+        // Parse frequency to get number (e.g., "3 kali sehari" -> 3, or just "3" -> 3)
+        const frequencyMatch = item.frequency.match(/\d+/)
+        const frequencyPerDay = frequencyMatch ? parseInt(frequencyMatch[0]) : 1
+        const totalQuantityNeeded = frequencyPerDay * item.duration_days
+        
+        if (medicine.stock_quantity < totalQuantityNeeded) {
+          stockErrors.push(
+            `${medicine.name}: stok tidak cukup (butuh ${totalQuantityNeeded} tablet, tersedia ${medicine.stock_quantity} tablet)`
+          )
+        }
+      }
+    }
+
+    if (stockErrors.length > 0) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Stok obat tidak mencukupi',
+          details: stockErrors
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
     // Create prescription
     const { data: prescription, error: prescriptionError } = await supabaseClient
       .from('prescriptions')
@@ -205,8 +236,9 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Unexpected error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return new Response(
-      JSON.stringify({ error: 'Internal server error', details: error.message }),
+      JSON.stringify({ error: 'Internal server error', details: errorMessage }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

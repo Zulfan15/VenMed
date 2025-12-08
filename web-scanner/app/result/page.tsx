@@ -113,34 +113,34 @@ export default function ResultPage() {
 
   if (!prescription) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+          <Loader2 className="w-12 h-12 animate-spin text-blue-900 mx-auto mb-4" />
+          <p className="text-slate-600">Loading...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+    <div className="min-h-screen bg-slate-50 py-8">
       <div className="container mx-auto px-4 max-w-2xl">
         {/* Success Header */}
         <div className="mb-6 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full mb-4">
-            <CheckCircle className="w-10 h-10 text-green-600 dark:text-green-400" />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+            <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          <h1 className="text-3xl font-bold text-slate-800 mb-2">
             Resep Valid!
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-slate-600">
             Silakan verifikasi detail resep di bawah
           </p>
         </div>
 
         {/* Prescription Details */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden mb-6">
-          <div className="p-6 bg-blue-600 text-white">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
+          <div className="p-6 bg-blue-900 text-white">
             <h2 className="text-xl font-bold flex items-center gap-2">
               <Package className="w-6 h-6" />
               Detail Resep
@@ -149,25 +149,25 @@ export default function ResultPage() {
 
           <div className="p-6 space-y-6">
             {/* Doctor Info */}
-            <div className="flex items-start gap-3 pb-4 border-b border-gray-200 dark:border-gray-700">
-              <User className="w-5 h-5 text-gray-400 mt-1" />
+            <div className="flex items-start gap-3 pb-4 border-b border-slate-200">
+              <User className="w-5 h-5 text-slate-400 mt-1" />
               <div className="flex-1">
-                <p className="text-sm text-gray-500 dark:text-gray-400">Dokter</p>
-                <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                <p className="text-sm text-slate-500">Dokter</p>
+                <p className="text-lg font-semibold text-slate-800">
                   {prescription.prescription.doctor.name}
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-slate-600">
                   SIP: {prescription.prescription.doctor.license_number}
                 </p>
               </div>
             </div>
 
             {/* Date */}
-            <div className="flex items-start gap-3 pb-4 border-b border-gray-200 dark:border-gray-700">
-              <Calendar className="w-5 h-5 text-gray-400 mt-1" />
+            <div className="flex items-start gap-3 pb-4 border-b border-slate-200">
+              <Calendar className="w-5 h-5 text-slate-400 mt-1" />
               <div className="flex-1">
-                <p className="text-sm text-gray-500 dark:text-gray-400">Tanggal Resep</p>
-                <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                <p className="text-sm text-slate-500">Tanggal Resep</p>
+                <p className="text-lg font-semibold text-slate-800">
                   {new Date(prescription.prescription.issued_at).toLocaleDateString('id-ID', {
                     weekday: 'long',
                     year: 'numeric',
@@ -181,8 +181,8 @@ export default function ResultPage() {
             {/* Medicine Items */}
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <Pill className="w-5 h-5 text-gray-400" />
-                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                <Pill className="w-5 h-5 text-slate-400" />
+                <p className="text-sm font-semibold text-slate-800">
                   Daftar Obat
                 </p>
               </div>
@@ -191,20 +191,20 @@ export default function ResultPage() {
                 {prescription.items.map((item, index) => (
                   <div 
                     key={index}
-                    className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg"
+                    className="p-4 bg-slate-50 rounded-lg"
                   >
                     <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-semibold text-gray-900 dark:text-white">
+                      <h3 className="font-semibold text-slate-800">
                         {item.medicine.name}
                       </h3>
-                      <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-sm font-medium">
+                      <span className="px-3 py-1 bg-blue-100 text-blue-900 rounded-full text-sm font-medium">
                         {item.total_quantity} {item.medicine.form}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    <p className="text-sm text-slate-600 mb-2">
                       {item.medicine.generic_name} - {item.medicine.strength}
                     </p>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                    <div className="text-sm text-slate-500">
                       <p><span className="font-medium">Dosis:</span> {item.dosage}</p>
                       <p><span className="font-medium">Frekuensi:</span> {item.frequency}</p>
                       <p><span className="font-medium">Durasi:</span> {item.duration_days} hari</p>
@@ -219,9 +219,9 @@ export default function ResultPage() {
 
         {/* Error Message */}
         {error && (
-          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-            <div className="text-sm text-red-800 dark:text-red-200">
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+            <div className="text-sm text-red-800">
               {error}
             </div>
           </div>
@@ -230,7 +230,7 @@ export default function ResultPage() {
         {/* Action Buttons */}
         <div className="flex gap-3">
           <Link href="/" className="flex-1">
-            <button className="w-full px-6 py-4 bg-gray-600 text-white rounded-lg font-semibold hover:bg-gray-700 transition-colors flex items-center justify-center gap-2">
+            <button className="w-full px-6 py-4 bg-slate-600 text-white rounded-lg font-semibold hover:bg-slate-700 transition-colors flex items-center justify-center gap-2">
               <Home className="w-5 h-5" />
               Batal
             </button>
@@ -239,7 +239,7 @@ export default function ResultPage() {
           <button
             onClick={handleDispense}
             disabled={dispensing}
-            className="flex-1 px-6 py-4 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="flex-1 px-6 py-4 bg-blue-900 text-white rounded-lg font-semibold hover:bg-blue-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {dispensing ? (
               <>
@@ -256,8 +256,8 @@ export default function ResultPage() {
         </div>
 
         {/* Warning */}
-        <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-          <p className="text-sm text-amber-800 dark:text-amber-200">
+        <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <p className="text-sm text-amber-800">
             <span className="font-semibold">Perhatian:</span> QR Code hanya dapat digunakan satu kali. 
             Setelah obat dikeluarkan, resep ini tidak dapat digunakan lagi.
           </p>

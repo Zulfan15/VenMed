@@ -59,3 +59,86 @@ export interface PrescriptionResponse {
   }
   items: PrescriptionItem[]
 }
+
+// Interface untuk riwayat pasien
+export interface PatientHistory {
+  patient_name: string
+  patient_age: number | null
+  patient_gender: string | null
+  diagnosis: string | null
+  last_visit: string
+  visit_count: number
+}
+
+// Fungsi untuk mencari pasien berdasarkan nama (autocomplete)
+export async function searchPatients(query: string): Promise<PatientHistory[]> {
+  if (!query || query.length < 2) return []
+  
+  const { data, error } = await supabase
+    .from('prescriptions')
+    .select('patient_name, patient_age, patient_gender, diagnosis, issued_at')
+    .ilike('patient_name', `%${query}%`)
+    .order('issued_at', { ascending: false })
+    .limit(50)
+
+  if (error || !data) return []
+
+  // Group by patient name and get latest data
+  const patientMap = new Map<string, PatientHistory>()
+  
+  for (const row of data) {
+    if (!row.patient_name || row.patient_name === 'Anonim') continue
+    
+    const existing = patientMap.get(row.patient_name)
+    if (existing) {
+      existing.visit_count++
+    } else {
+      patientMap.set(row.patient_name, {
+        patient_name: row.patient_name,
+        patient_age: row.patient_age,
+        patient_gender: row.patient_gender,
+        diagnosis: row.diagnosis,
+        last_visit: row.issued_at,
+        visit_count: 1
+      })
+    }
+  }
+
+  return Array.from(patientMap.values()).slice(0, 10)
+}
+
+// Fungsi untuk mendapatkan riwayat resep pasien
+export async function getPatientPrescriptions(patientName: string) {
+  const { data, error } = await supabase
+    .from('prescriptions')
+    .select(`
+      id,
+      patient_name,
+      patient_age,
+      patient_gender,
+      diagnosis,
+      notes,
+      issued_at,
+      status,
+      prescription_items (
+        dosage,
+        frequency,
+        duration_days,
+        instructions,
+        medicines (
+          name,
+          strength
+        )
+      )
+    `)
+    .eq('patient_name', patientName)
+    .order('issued_at', { ascending: false })
+    .limit(10)
+
+  if (error) {
+    console.error('Error fetching patient prescriptions:', error)
+    return []
+  }
+
+  return data || []
+}

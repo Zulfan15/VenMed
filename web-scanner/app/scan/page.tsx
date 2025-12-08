@@ -145,31 +145,31 @@ export default function ScanPage() {
           }
         `
       }} />
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+      <div className="min-h-screen bg-slate-50 py-8">
         <div className="container mx-auto px-4 max-w-2xl">
         {/* Header */}
         <div className="mb-6 flex items-center gap-4">
           <Link href="/">
             <button 
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
+              className="p-2 hover:bg-slate-200 rounded-lg text-slate-600"
               aria-label="Kembali ke beranda"
             >
               <Home className="w-6 h-6" />
             </button>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-3xl font-bold text-slate-800">
               Scan QR Code
             </h1>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-slate-600">
               Arahkan kamera ke QR Code resep
             </p>
           </div>
         </div>
 
         {/* Scanner Container */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
-          <div className="p-6 bg-blue-600 text-white">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="p-6 bg-blue-900 text-white">
             <div className="flex items-center justify-center gap-2">
               <Camera className="w-6 h-6" />
               <h2 className="text-xl font-bold">
@@ -184,9 +184,9 @@ export default function ScanPage() {
             
             {verifying && (
               <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 flex items-center gap-3">
-                  <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-                  <span className="text-lg font-semibold text-gray-900 dark:text-white">
+                <div className="bg-white rounded-xl p-6 flex items-center gap-3">
+                  <Loader2 className="w-6 h-6 animate-spin text-blue-900" />
+                  <span className="text-lg font-semibold text-slate-800">
                     Memverifikasi resep...
                   </span>
                 </div>
@@ -196,20 +196,20 @@ export default function ScanPage() {
 
           {/* Error Message */}
           {error && (
-            <div className="m-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-              <div className="text-sm text-red-800 dark:text-red-200">
+            <div className="m-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+              <div className="text-sm text-red-800">
                 {error}
               </div>
             </div>
           )}
 
           {/* Instructions */}
-          <div className="p-6 bg-gray-50 dark:bg-gray-900">
-            <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
+          <div className="p-6 bg-slate-50">
+            <h3 className="font-semibold text-slate-800 mb-2">
               Petunjuk Scanning:
             </h3>
-            <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+            <ul className="text-sm text-slate-600 space-y-1">
               <li>• Posisikan QR Code di tengah frame kamera</li>
               <li>• Pastikan pencahayaan cukup</li>
               <li>• Jaga kamera tetap stabil</li>
@@ -221,7 +221,7 @@ export default function ScanPage() {
         {/* Back Button */}
         <div className="mt-6 text-center">
           <Link href="/">
-            <button className="px-6 py-3 bg-gray-600 text-white rounded-lg font-semibold hover:bg-gray-700 transition-colors">
+            <button className="px-6 py-3 bg-slate-600 text-white rounded-lg font-semibold hover:bg-slate-700 transition-colors">
               Kembali ke Beranda
             </button>
           </Link>
