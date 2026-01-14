@@ -46,7 +46,7 @@ export default function LoginPage() {
           .from('doctors')
           .update({ user_id: data.user.id })
           .eq('id', doctor.id)
-        
+
         if (!updateError) {
           doctor.user_id = data.user.id
         }
@@ -163,7 +163,7 @@ export default function LoginPage() {
             Demo Login:
           </p>
           <p className="text-xs text-blue-800">
-            Email: ahmad.santoso@hospital.com<br />
+            Email: ahmad.santoso@clinic.com<br />
             Password: doctor123
           </p>
         </div>

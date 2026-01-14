@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { User, FileText, LogOut, Plus, History, TrendingUp, CheckCircle, Clock, Activity, ArrowRight } from 'lucide-react'
+import { User, FileText, LogOut, Plus, History, TrendingUp, CheckCircle, Clock, Activity, ArrowRight, Shield } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
 interface Doctor {
@@ -12,6 +12,7 @@ interface Doctor {
   license_number: string
   email: string
   phone?: string
+  role?: 'admin' | 'doctor' | 'operator'
 }
 
 interface Stats {
@@ -41,7 +42,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (initialized.current) return
     initialized.current = true
-    
+
     const storedDoctor = localStorage.getItem('doctor')
     if (storedDoctor) {
       try {
@@ -140,6 +141,15 @@ export default function DashboardPage() {
             <History className="w-4 h-4" />
             Riwayat
           </Link>
+          {(doctor.role === 'admin' || doctor.role === 'operator') && (
+            <>
+              <hr className="border-blue-700 my-3" />
+              <Link href="/admin" className="flex items-center gap-3 px-3 py-2.5 text-amber-300 hover:text-amber-200 hover:bg-blue-800/50 rounded-lg text-sm transition-colors">
+                <Shield className="w-4 h-4" />
+                Admin Panel
+              </Link>
+            </>
+          )}
         </nav>
 
         {/* Logout */}

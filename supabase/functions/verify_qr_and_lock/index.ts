@@ -41,9 +41,9 @@ serve(async (req) => {
     if (!requestData.token) {
       return new Response(
         JSON.stringify({ error: 'token is required' }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
     }
@@ -79,13 +79,13 @@ serve(async (req) => {
 
     if (qrError || !qrToken) {
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           valid: false,
-          error: 'QR token not found' 
+          error: 'QR token not found'
         }),
-        { 
-          status: 404, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
     }
@@ -93,14 +93,14 @@ serve(async (req) => {
     // Check if token is valid
     if (!qrToken.is_valid) {
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           valid: false,
           error: 'QR token has already been used',
-          used_at: qrToken.used_at 
+          used_at: qrToken.used_at
         }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
     }
@@ -110,14 +110,14 @@ serve(async (req) => {
     const expiresAt = new Date(qrToken.expires_at)
     if (now > expiresAt) {
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           valid: false,
           error: 'QR token has expired',
-          expires_at: qrToken.expires_at 
+          expires_at: qrToken.expires_at
         }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
     }
@@ -126,13 +126,13 @@ serve(async (req) => {
     const prescription = qrToken.prescriptions as any
     if (prescription.status !== 'issued') {
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           valid: false,
-          error: `Prescription status is ${prescription.status}, cannot be dispensed` 
+          error: `Prescription status is ${prescription.status}, cannot be dispensed`
         }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
     }
@@ -153,20 +153,21 @@ serve(async (req) => {
           generic_name,
           strength,
           form,
-          stock_quantity
+          stock_quantity,
+          expired_at
         )
       `)
       .eq('prescription_id', prescription.id)
 
     if (itemsError || !prescriptionItems) {
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           valid: false,
-          error: 'Failed to fetch prescription items' 
+          error: 'Failed to fetch prescription items'
         }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
     }
@@ -179,7 +180,7 @@ serve(async (req) => {
 
     if (insufficientStock.length > 0) {
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           valid: false,
           error: 'Insufficient stock for one or more medicines',
           insufficient_items: insufficientStock.map(item => ({
@@ -188,9 +189,36 @@ serve(async (req) => {
             available: (item.medicines as any).stock_quantity
           }))
         }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
+    // Check if any medicines are expired
+    const expiredMedicines = prescriptionItems.filter(item => {
+      const medicine = item.medicines as any
+      if (!medicine.expired_at) return false
+      const expiredDate = new Date(medicine.expired_at)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      return expiredDate <= today
+    })
+
+    if (expiredMedicines.length > 0) {
+      return new Response(
+        JSON.stringify({
+          valid: false,
+          error: 'Cannot dispense: One or more medicines have expired',
+          expired_items: expiredMedicines.map(item => ({
+            medicine: (item.medicines as any).name,
+            expired_at: (item.medicines as any).expired_at
+          }))
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
     }
@@ -210,9 +238,9 @@ serve(async (req) => {
         console.error('Failed to update QR token:', updateQRError)
         return new Response(
           JSON.stringify({ error: 'Failed to mark token as used' }),
-          { 
-            status: 500, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           }
         )
       }
@@ -284,9 +312,9 @@ serve(async (req) => {
           used_at: action === 'dispense' ? new Date().toISOString() : null
         }
       }),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     )
 
@@ -294,9 +322,9 @@ serve(async (req) => {
     console.error('Unexpected error:', error)
     return new Response(
       JSON.stringify({ error: 'Internal server error', details: error.message }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     )
   }
